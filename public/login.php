@@ -3,6 +3,7 @@ require_once __DIR__ . "/../admin/includes/db.php";
 require_once __DIR__ . "/../admin/includes/auth.php";
 require_once __DIR__ . "/../admin/includes/csrf.php";
 
+
 $title = "Login";
 $error = "";
 
@@ -59,4 +60,5 @@ require_once __DIR__ . "/../admin/includes/header.php";
     </div>
   </div>
 </div>
-<?php require_once __DIR__ . "/../admin/includes/footer.php"; ?>
+<?php require_once __DIR__ . "/../admin/includes/footer.php";
+ ?>

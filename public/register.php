@@ -3,6 +3,7 @@ require_once __DIR__ . "/../admin/includes/db.php";
 require_once __DIR__ . "/../admin/includes/auth.php";
 require_once __DIR__ . "/../admin/includes/csrf.php";
 
+
 $title = "Register";
 $error = "";
 $success = "";
@@ -37,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 require_once __DIR__ . "/../admin/includes/header.php";
+
 ?>
 <div class="row justify-content-center">
   <div class="col-md-6">
@@ -80,4 +82,5 @@ require_once __DIR__ . "/../admin/includes/header.php";
     </div>
   </div>
 </div>
-<?php require_once __DIR__ . "/../admin/includes/footer.php"; ?>
+<?php require_once __DIR__ . "/../admin/includes/footer.php";
+ ?>

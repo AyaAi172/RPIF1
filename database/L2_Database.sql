@@ -137,5 +137,8 @@ CREATE TABLE friendships (
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
   
-  INSERT INTO users (username, full_name, email, password, role)
+INSERT INTO users (username, full_name, email, password, role)
 VALUES ('unassigned', 'Unassigned Stations', 'unassigned@local', 'x', 'user');
+
+SELECT user_id FROM users WHERE username='unassigned';
+
