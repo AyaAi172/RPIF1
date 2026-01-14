@@ -7,7 +7,7 @@ requireLogin();
 $title = "Stations";
 
 // IMPORTANT: set this to the user_id of the 'unassigned' user you created
-$UNASSIGNED_USER_ID = 2; // TODO: change this (e.g., 2)
+$UNASSIGNED_USER_ID = 1; // TODO: change this (e.g., 2)
 
 $error = "";
 $success = "";
