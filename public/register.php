@@ -82,5 +82,4 @@ require_once __DIR__ . "/../admin/includes/header.php";
     </div>
   </div>
 </div>
-<?php require_once __DIR__ . "/../admin/includes/footer.php";
- ?>
+<?php require_once __DIR__ . "/../admin/includes/footer.php";?>

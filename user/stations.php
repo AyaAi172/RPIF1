@@ -6,6 +6,10 @@ require_once __DIR__ . "/../admin/includes/csrf.php";
 requireLogin();
 $title = "Stations";
 
+<<<<<<< HEAD
+=======
+$UNASSIGNED_USER_ID = 1; // your DB shows unassigned = 1
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
 $edit_station_id = (int)($_GET['edit'] ?? 0);
 
 $error = "";
@@ -16,14 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $action = $_POST['action'] ?? '';
 
+<<<<<<< HEAD
     // 1) Register station by serial number (available = user_id IS NULL)
+=======
+    // Register station by serial number (no forced name/desc)
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
     if ($action === 'register_station') {
         $serial = trim($_POST['serial_number'] ?? '');
 
         if ($serial === '') {
             $error = "Serial number is required.";
         } else {
+<<<<<<< HEAD
             // Find station
+=======
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
             $stmt = $conn->prepare("SELECT station_id, user_id FROM stations WHERE serial_number = ?");
             $stmt->bind_param("s", $serial);
             $stmt->execute();
@@ -34,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $station = $res->fetch_assoc();
                 $station_id = (int)$station['station_id'];
+<<<<<<< HEAD
                 $owner_id = $station['user_id']; // can be NULL
 
                 if ($owner_id !== null) {
@@ -42,19 +54,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Assign to current user (only if still NULL to avoid race condition)
                     $stmt2 = $conn->prepare("UPDATE stations SET user_id = ? WHERE station_id = ? AND user_id IS NULL");
                     $stmt2->bind_param("ii", $_SESSION['user_id'], $station_id);
+=======
+                $owner_id = (int)$station['user_id'];
+
+                if ($owner_id !== $UNASSIGNED_USER_ID) {
+                    $error = "This station is already assigned to a user.";
+                } else {
+                    $stmt2 = $conn->prepare("UPDATE stations SET user_id = ? WHERE station_id = ? AND user_id = ?");
+                    $stmt2->bind_param("iii", $_SESSION['user_id'], $station_id, $UNASSIGNED_USER_ID);
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
                     $stmt2->execute();
 
                     if ($stmt2->affected_rows > 0) {
                         $success = "Station registered to your account.";
                     } else {
+<<<<<<< HEAD
                         $error = "Registration failed. The station may have been taken already.";
+=======
+                        $error = "Registration failed. Try again.";
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
                     }
                 }
             }
         }
     }
 
+<<<<<<< HEAD
     // 2) Save edits (only if station belongs to current user)
+=======
+    // Save station edits (only if it belongs to current user)
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
     if ($action === 'update_station') {
         $station_id = (int)($_POST['station_id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
@@ -71,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("ssii", $name, $description, $station_id, $_SESSION['user_id']);
             $stmt->execute();
 
+<<<<<<< HEAD
             $success = "Station saved.";
             header("Location: /RPIF1/user/stations.php");
             exit();
@@ -78,6 +108,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // 3) Unassign station (your “Delete” meaning A): set user_id = NULL
+=======
+            if ($stmt->affected_rows >= 0) { // 0 rows can happen if values unchanged
+                $success = "Station saved.";
+                // exit edit mode
+                header("Location: /RPIF1/user/stations.php");
+                exit();
+            } else {
+                $error = "Save failed.";
+            }
+        }
+    }
+
+    // Unassign station (make available again)
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
     if ($action === 'unassign_station') {
         $station_id = (int)($_POST['station_id'] ?? 0);
 
@@ -86,10 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $stmt = $conn->prepare("
                 UPDATE stations
+<<<<<<< HEAD
                 SET user_id = NULL
                 WHERE station_id = ? AND user_id = ?
             ");
             $stmt->bind_param("ii", $station_id, $_SESSION['user_id']);
+=======
+                SET user_id = ?
+                WHERE station_id = ? AND user_id = ?
+            ");
+            $stmt->bind_param("iii", $UNASSIGNED_USER_ID, $station_id, $_SESSION['user_id']);
+>>>>>>> 00853272a39858165b75c5d603f4b06b92c03cc8
             $stmt->execute();
 
             if ($stmt->affected_rows > 0) {
