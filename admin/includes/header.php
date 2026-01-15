@@ -27,6 +27,11 @@ require_once __DIR__ . "/auth.php";
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/welcome.php">Welcome</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/stations.php">Stations</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/measurements.php">Measurements</a></li>
+          <li class="nav-item"><a class="nav-link" href="/RPIF1/user/account.php">Account</a></li>
+        <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/users.php">Admin Users</a></li>
+<li class="nav-item"><a class="nav-link" href="/RPIF1/admin/stations.php">Admin Stations</a></li>
+
+
           <?php if (isAdmin()): ?>
             <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/dashboard.php">Admin</a></li>
           <?php endif; ?>
