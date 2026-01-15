@@ -6,8 +6,8 @@ require_once __DIR__ . "/../admin/includes/csrf.php";
 requireLogin();
 $title = "Stations";
 
-// IMPORTANT: set this to the user_id of the 'unassigned' user you created
-$UNASSIGNED_USER_ID = 1; // TODO: change this (e.g., 2)
+$UNASSIGNED_USER_ID = 1; // your DB shows unassigned = 1
+$edit_station_id = (int)($_GET['edit'] ?? 0);
 
 $error = "";
 $success = "";
@@ -15,10 +15,45 @@ $success = "";
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-
     $action = $_POST['action'] ?? '';
 
-    // 1) Update station name/description (only if station belongs to current user)
+    // Register station by serial number (no forced name/desc)
+    if ($action === 'register_station') {
+        $serial = trim($_POST['serial_number'] ?? '');
+
+        if ($serial === '') {
+            $error = "Serial number is required.";
+        } else {
+            $stmt = $conn->prepare("SELECT station_id, user_id FROM stations WHERE serial_number = ?");
+            $stmt->bind_param("s", $serial);
+            $stmt->execute();
+            $res = $stmt->get_result();
+
+            if ($res->num_rows !== 1) {
+                $error = "Serial number not found.";
+            } else {
+                $station = $res->fetch_assoc();
+                $station_id = (int)$station['station_id'];
+                $owner_id = (int)$station['user_id'];
+
+                if ($owner_id !== $UNASSIGNED_USER_ID) {
+                    $error = "This station is already assigned to a user.";
+                } else {
+                    $stmt2 = $conn->prepare("UPDATE stations SET user_id = ? WHERE station_id = ? AND user_id = ?");
+                    $stmt2->bind_param("iii", $_SESSION['user_id'], $station_id, $UNASSIGNED_USER_ID);
+                    $stmt2->execute();
+
+                    if ($stmt2->affected_rows > 0) {
+                        $success = "Station registered to your account.";
+                    } else {
+                        $error = "Registration failed. Try again.";
+                    }
+                }
+            }
+        }
+    }
+
+    // Save station edits (only if it belongs to current user)
     if ($action === 'update_station') {
         $station_id = (int)($_POST['station_id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
@@ -35,52 +70,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("ssii", $name, $description, $station_id, $_SESSION['user_id']);
             $stmt->execute();
 
-            if ($stmt->affected_rows > 0) {
-                $success = "Station updated.";
+            if ($stmt->affected_rows >= 0) { // 0 rows can happen if values unchanged
+                $success = "Station saved.";
+                // exit edit mode
+                header("Location: /RPIF1/user/stations.php");
+                exit();
             } else {
-                $error = "Update failed (station not found or not yours).";
+                $error = "Save failed.";
             }
         }
     }
 
-    // 2) Register station by serial number (only if owned by UNASSIGNED_USER_ID)
-    if ($action === 'register_station') {
-        if ($UNASSIGNED_USER_ID <= 0) {
-            $error = "UNASSIGNED_USER_ID is not set yet. Ask teacher / check database.";
+    // Unassign station (make available again)
+    if ($action === 'unassign_station') {
+        $station_id = (int)($_POST['station_id'] ?? 0);
+
+        if ($station_id <= 0) {
+            $error = "Invalid station.";
         } else {
-            $serial = trim($_POST['serial_number'] ?? '');
+            $stmt = $conn->prepare("
+                UPDATE stations
+                SET user_id = ?
+                WHERE station_id = ? AND user_id = ?
+            ");
+            $stmt->bind_param("iii", $UNASSIGNED_USER_ID, $station_id, $_SESSION['user_id']);
+            $stmt->execute();
 
-            if ($serial === '') {
-                $error = "Serial number is required.";
+            if ($stmt->affected_rows > 0) {
+                $success = "Station removed from your account and is available again.";
             } else {
-                // Find station
-                $stmt = $conn->prepare("SELECT station_id, user_id FROM stations WHERE serial_number = ?");
-                $stmt->bind_param("s", $serial);
-                $stmt->execute();
-                $res = $stmt->get_result();
-
-                if ($res->num_rows !== 1) {
-                    $error = "Serial number not found.";
-                } else {
-                    $station = $res->fetch_assoc();
-                    $station_id = (int)$station['station_id'];
-                    $owner_id = (int)$station['user_id'];
-
-                    if ($owner_id !== $UNASSIGNED_USER_ID) {
-                        $error = "This station is already assigned to a user.";
-                    } else {
-                        // Assign to current user
-                        $stmt2 = $conn->prepare("UPDATE stations SET user_id = ? WHERE station_id = ? AND user_id = ?");
-                        $stmt2->bind_param("iii", $_SESSION['user_id'], $station_id, $UNASSIGNED_USER_ID);
-                        $stmt2->execute();
-
-                        if ($stmt2->affected_rows > 0) {
-                            $success = "Station registered to your account.";
-                        } else {
-                            $error = "Registration failed. Try again.";
-                        }
-                    }
-                }
+                $error = "Remove failed (station not found or not yours).";
             }
         }
     }
@@ -139,29 +158,47 @@ require_once __DIR__ . "/../admin/includes/header.php";
                 <th>Serial</th>
                 <th>Name</th>
                 <th>Description</th>
-                <th style="width: 120px;"></th>
+                <th style="width: 220px;"></th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($stations as $s): ?>
+                <?php
+                  $sid = (int)$s['station_id'];
+                  $isEditing = ($edit_station_id === $sid);
+                ?>
                 <tr>
-                  <td><?= (int)$s['station_id'] ?></td>
+                  <td><?= $sid ?></td>
                   <td><?= e($s['serial_number']) ?></td>
-                  <td>
-                    <form method="post" class="d-flex gap-2">
+
+                  <?php if ($isEditing): ?>
+                    <form method="post">
                       <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                       <input type="hidden" name="action" value="update_station">
-                      <input type="hidden" name="station_id" value="<?= (int)$s['station_id'] ?>">
+                      <input type="hidden" name="station_id" value="<?= $sid ?>">
 
-                      <input class="form-control form-control-sm" name="name" value="<?= e($s['name']) ?>" required>
-                  </td>
-                  <td>
-                      <input class="form-control form-control-sm" name="description" value="<?= e($s['description'] ?? '') ?>">
-                  </td>
-                  <td>
-                      <button class="btn btn-sm btn-outline-dark">Save</button>
+                      <td><input class="form-control form-control-sm" name="name" value="<?= e($s['name']) ?>" required></td>
+                      <td><input class="form-control form-control-sm" name="description" value="<?= e($s['description'] ?? '') ?>"></td>
+                      <td class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-dark">Save</button>
+                        <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/stations.php">Cancel</a>
+                      </td>
                     </form>
-                  </td>
+                  <?php else: ?>
+                    <td><input class="form-control form-control-sm" value="<?= e($s['name']) ?>" readonly></td>
+                    <td><input class="form-control form-control-sm" value="<?= e($s['description'] ?? '') ?>" readonly></td>
+                    <td class="d-flex gap-2">
+                      <a class="btn btn-sm btn-outline-dark" href="/RPIF1/user/stations.php?edit=<?= $sid ?>">Edit</a>
+
+                      <form method="post" onsubmit="return confirm('Remove this station from your account? It will become available again.');">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="action" value="unassign_station">
+                        <input type="hidden" name="station_id" value="<?= $sid ?>">
+                        <button class="btn btn-sm btn-outline-danger">Delete</button>
+                      </form>
+                    </td>
+                  <?php endif; ?>
+
                 </tr>
               <?php endforeach; ?>
             </tbody>
