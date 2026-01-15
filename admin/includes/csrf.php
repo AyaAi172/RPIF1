@@ -1,21 +1,20 @@
 <?php
-declare(strict_types=1);
-
+// csrf.php: simple protection against fake form submissions
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-function csrf_token(): string {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+function csrfToken() {
+    if (!isset($_SESSION["csrf"])) {
+        $_SESSION["csrf"] = bin2hex(random_bytes(16));
     }
-    return $_SESSION['csrf_token'];
+    return $_SESSION["csrf"];
 }
 
-function csrf_check(): void {
-    $posted = $_POST['csrf_token'] ?? '';
-    $session = $_SESSION['csrf_token'] ?? '';
-    if (!$posted || !$session || !hash_equals($session, $posted)) {
-        die("Invalid CSRF token.");
+function checkCsrf() {
+    $posted = $_POST["csrf"] ?? "";
+    $saved  = $_SESSION["csrf"] ?? "";
+    if ($posted === "" || $saved === "" || !hash_equals($saved, $posted)) {
+        die("CSRF check failed.");
     }
 }

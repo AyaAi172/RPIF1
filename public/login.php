@@ -1,51 +1,48 @@
 <?php
-require_once __DIR__ . "/../admin/includes/db.php";
-require_once __DIR__ . "/../admin/includes/auth.php";
-require_once __DIR__ . "/../admin/includes/csrf.php";
-
-
+require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
 $title = "Login";
-$error = "";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_check();
+$msg = "";
 
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  checkCsrf();
 
-    $stmt = $conn->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $res = $stmt->get_result();
+  $username = trim($_POST["username"] ?? "");
+  $password = $_POST["password"] ?? "";
 
-    if ($res->num_rows === 1) {
-        $user = $res->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = (int)$user['user_id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
+  $stmt = mysqli_prepare($conn, "SELECT user_id, username, password, role FROM users WHERE username = ?");
+  mysqli_stmt_bind_param($stmt, "s", $username);
+  mysqli_stmt_execute($stmt);
+  $res = mysqli_stmt_get_result($stmt);
 
-            header("Location: /RPIF1/user/welcome.php");
-            exit();
-        }
+  if ($row = mysqli_fetch_assoc($res)) {
+    if (password_verify($password, $row["password"])) {
+      $_SESSION["user_id"] = (int)$row["user_id"];
+      $_SESSION["username"] = $row["username"];
+      $_SESSION["role"] = $row["role"];
+
+      header("Location: /RPIF1/user/welcome.php");
+      exit();
     }
-
-    $error = "Invalid username or password.";
+  }
+  $msg = "Wrong username or password.";
 }
 
-require_once __DIR__ . "/../admin/includes/header.php";
+require_once PIF_ROOT . "/includes/header.php";
 ?>
 <div class="row justify-content-center">
   <div class="col-md-5">
     <div class="card p-4">
       <h1 class="h4 mb-3">Login</h1>
 
-      <?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
+      <?php if ($msg !== ""): ?>
+        <div class="alert alert-danger"><?= esc($msg) ?></div>
+      <?php endif; ?>
 
       <form method="post">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
 
-        <div class="mb-3">
+        <div class="mb-2">
           <label class="form-label">Username</label>
           <input class="form-control" name="username" required>
         </div>
@@ -60,5 +57,5 @@ require_once __DIR__ . "/../admin/includes/header.php";
     </div>
   </div>
 </div>
-<?php require_once __DIR__ . "/../admin/includes/footer.php";
+<?php require_once PIF_ROOT . "/includes/footer.php";
  ?>

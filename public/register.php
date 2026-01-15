@@ -1,85 +1,79 @@
 <?php
-require_once __DIR__ . "/../admin/includes/db.php";
-require_once __DIR__ . "/../admin/includes/auth.php";
-require_once __DIR__ . "/../admin/includes/csrf.php";
-
-
+require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
 $title = "Register";
-$error = "";
-$success = "";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_check();
+$msg = "";
 
-    $username  = trim($_POST['username'] ?? '');
-    $full_name = trim($_POST['full_name'] ?? '');
-    $email     = trim($_POST['email'] ?? '');
-    $password1 = $_POST['password'] ?? '';
-    $password2 = $_POST['password2'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  checkCsrf();
 
-    if ($username === '' || $full_name === '' || $email === '' || $password1 === '') {
-        $error = "All fields are required.";
-    } elseif ($password1 !== $password2) {
-        $error = "Passwords do not match.";
+  $username  = trim($_POST["username"] ?? "");
+  $full_name = trim($_POST["full_name"] ?? "");
+  $email     = trim($_POST["email"] ?? "");
+  $pass1     = $_POST["password"] ?? "";
+  $pass2     = $_POST["password2"] ?? "";
+
+  if ($username === "" || $full_name === "" || $email === "" || $pass1 === "") {
+    $msg = "Please fill all fields.";
+  } else if ($pass1 !== $pass2) {
+    $msg = "Passwords do not match.";
+  } else {
+    $hash = password_hash($pass1, PASSWORD_DEFAULT);
+
+    $stmt = mysqli_prepare($conn, "INSERT INTO users (username, full_name, email, password, role) VALUES (?,?,?,?, 'user')");
+    mysqli_stmt_bind_param($stmt, "ssss", $username, $full_name, $email, $hash);
+
+    if (mysqli_stmt_execute($stmt)) {
+      $msg = "Account created. You can login now.";
     } else {
-        $hashed = password_hash($password1, PASSWORD_DEFAULT);
-
-        $stmt = $conn->prepare("INSERT INTO users (username, full_name, email, password, role) VALUES (?,?,?,?, 'user')");
-        $stmt->bind_param("ssss", $username, $full_name, $email, $hashed);
-
-        try {
-            $stmt->execute();
-            $success = "Account created. You can log in now.";
-        } catch (mysqli_sql_exception $e) {
-            // likely duplicate username/email
-            $error = "Username or email already exists.";
-        }
+      $msg = "Username or email already exists.";
     }
+  }
 }
 
-require_once __DIR__ . "/../admin/includes/header.php";
-
+require_once PIF_ROOT . "/includes/header.php";
 ?>
 <div class="row justify-content-center">
   <div class="col-md-6">
     <div class="card p-4">
-      <h1 class="h4 mb-3">Create account</h1>
+      <h1 class="h4 mb-3">Register</h1>
 
-      <?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
-      <?php if ($success): ?><div class="alert alert-success"><?= e($success) ?></div><?php endif; ?>
+      <?php if ($msg !== ""): ?>
+        <div class="alert alert-info"><?= esc($msg) ?></div>
+      <?php endif; ?>
 
       <form method="post">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
 
-        <div class="mb-3">
+        <div class="mb-2">
           <label class="form-label">Username</label>
           <input class="form-control" name="username" required>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-2">
           <label class="form-label">Full name</label>
           <input class="form-control" name="full_name" required>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-2">
           <label class="form-label">Email</label>
           <input class="form-control" type="email" name="email" required>
         </div>
 
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Password</label>
-            <input class="form-control" type="password" name="password" required>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Confirm</label>
-            <input class="form-control" type="password" name="password2" required>
-          </div>
+        <div class="mb-2">
+          <label class="form-label">Password</label>
+          <input class="form-control" type="password" name="password" required>
         </div>
 
-        <button class="btn btn-dark w-100">Register</button>
+        <div class="mb-3">
+          <label class="form-label">Confirm Password</label>
+          <input class="form-control" type="password" name="password2" required>
+        </div>
+
+        <button class="btn btn-dark w-100">Create account</button>
       </form>
     </div>
   </div>
 </div>
-<?php require_once __DIR__ . "/../admin/includes/footer.php";?>
+<?php require_once PIF_ROOT . "/includes/footer.php";
+ ?>

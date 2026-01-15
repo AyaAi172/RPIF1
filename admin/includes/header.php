@@ -1,18 +1,20 @@
 <?php
-require_once __DIR__ . "/auth.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
+$title = $title ?? "RPIF1";
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= e($title ?? "RPIF1") ?></title>
+  <title><?= esc($title) ?></title>
 
+  <!-- Bootstrap for quick clean UI -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="/RPIF1/admin/assets/css/app.css" rel="stylesheet">
-
+  <link href="/RPIF1/assets/css/app.css" rel="stylesheet">
 </head>
 <body>
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
     <a class="navbar-brand" href="<?= isLoggedIn() ? "/RPIF1/user/welcome.php" : "/RPIF1/public/login.php" ?>">PIF</a>
@@ -28,13 +30,13 @@ require_once __DIR__ . "/auth.php";
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/stations.php">Stations</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/measurements.php">Measurements</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/account.php">Account</a></li>
-        <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/users.php">Admin Users</a></li>
-<li class="nav-item"><a class="nav-link" href="/RPIF1/admin/stations.php">Admin Stations</a></li>
+        <?php endif; ?>
 
-
-          <?php if (isAdmin()): ?>
-            <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/dashboard.php">Admin</a></li>
-          <?php endif; ?>
+        <?php if (isAdmin()): ?>
+          <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/dashboard.php">Admin</a></li>
+          <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/users.php">Admin Users</a></li>
+          <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/stations.php">Admin Stations</a></li>
+          <li class="nav-item"><a class="nav-link" href="/RPIF1/admin/measurements.php">Admin Measurements</a></li>
         <?php endif; ?>
       </ul>
 
@@ -43,7 +45,7 @@ require_once __DIR__ . "/auth.php";
           <li class="nav-item"><a class="nav-link" href="/RPIF1/public/register.php">Register</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/public/login.php">Login</a></li>
         <?php else: ?>
-          <li class="nav-item"><span class="navbar-text me-3">Hi, <?= e($_SESSION['username']) ?></span></li>
+          <li class="nav-item"><span class="navbar-text me-3">Hi, <?= esc($_SESSION["username"]) ?></span></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/public/logout.php">Logout</a></li>
         <?php endif; ?>
       </ul>

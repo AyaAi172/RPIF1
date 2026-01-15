@@ -1,1 +1,2 @@
-// placeholder for later (validation, charts, etc.)
+// Keep JS minimal for now.
+// Later you can add ChartJS here.

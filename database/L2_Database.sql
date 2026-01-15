@@ -1,16 +1,16 @@
 -- =========================================================
--- Portable Indoor Feedback - Database Schema
--- Save this as pif_database.sql and run in MariaDB/MySQL
+-- PIF Database (teacher schema + our simplifications)
+-- Key changes:
+-- 1) stations.user_id can be NULL (available station)
+-- 2) FK ON DELETE SET NULL (do not destroy stations when user deleted)
 -- =========================================================
 
--- 1) Create database and select it
 CREATE DATABASE IF NOT EXISTS pif_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
 USE pif_db;
 
--- 2) Drop tables if they already exist (for clean rebuild)
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS collection_measurements;
@@ -23,9 +23,7 @@ DROP TABLE IF EXISTS users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 3) Tables
-
--- 3.1 Users
+-- USERS
 CREATE TABLE users (
   user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
@@ -33,59 +31,50 @@ CREATE TABLE users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('user','admin') NOT NULL DEFAULT 'user'
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.2 Stations
+-- STATIONS (CHANGED: user_id NULL allowed)
 CREATE TABLE stations (
   station_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   serial_number VARCHAR(50) NOT NULL UNIQUE,
   name VARCHAR(150) NOT NULL,
   description TEXT,
-  user_id INT UNSIGNED NOT NULL,      -- owner of the station
+  user_id INT UNSIGNED NULL, -- NULL means available
   CONSTRAINT fk_station_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
-    ON DELETE CASCADE
+    ON DELETE SET NULL
     ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.3 Measurements
+-- MEASUREMENTS
 CREATE TABLE measurements (
   measurement_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   station_id INT UNSIGNED NOT NULL,
-  measured_at DATETIME NOT NULL,      -- timestamp of measurement
-  temperature DECIMAL(5,2),           -- °C
-  humidity DECIMAL(5,2),              -- %
-  pressure DECIMAL(7,2),              -- hPa
-  light INT,                          -- lux
-  gas INT,                            -- ppm
+  measured_at DATETIME NOT NULL,
+  temperature DECIMAL(5,2),
+  humidity DECIMAL(5,2),
+  pressure DECIMAL(7,2),
+  light INT,
+  gas INT,
   CONSTRAINT fk_measurement_station
     FOREIGN KEY (station_id) REFERENCES stations(station_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   INDEX idx_measurements_station_time (station_id, measured_at)
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.4 Collections
+-- COLLECTIONS
 CREATE TABLE collections (
   collection_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   description TEXT,
-  user_id INT UNSIGNED NOT NULL,      -- creator / owner
+  user_id INT UNSIGNED NOT NULL,
   CONSTRAINT fk_collection_user
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.5 CollectionMeasurement (link: Collection <-> Measurement, M:N)
 CREATE TABLE collection_measurements (
   collection_id INT UNSIGNED NOT NULL,
   measurement_id BIGINT UNSIGNED NOT NULL,
@@ -98,11 +87,8 @@ CREATE TABLE collection_measurements (
     FOREIGN KEY (measurement_id) REFERENCES measurements(measurement_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.6 CollectionShare (link: User <-> Collection, M:N)
 CREATE TABLE collection_shares (
   collection_id INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED NOT NULL,
@@ -115,11 +101,8 @@ CREATE TABLE collection_shares (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3.7 Friendships (link: User <-> User, M:N)
 CREATE TABLE friendships (
   user_id INT UNSIGNED NOT NULL,
   friend_user_id INT UNSIGNED NOT NULL,
@@ -133,7 +116,20 @@ CREATE TABLE friendships (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CHECK (user_id <> friend_user_id)
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- SEED ADMIN USER (password: admin123)
+INSERT INTO users (username, full_name, email, password, role)
+VALUES (
+  'admin',
+  'Admin User',
+  'admin@local',
+  '$2y$10$0j9x3m8u8P8a8dVt4zYxJOV4wqOQbZpN4q5U2YvQ3S9rKqf2zZp4C',
+  'admin'
+);
+
+-- Sample available stations (user_id NULL)
+INSERT INTO stations (serial_number, name, description, user_id) VALUES
+('WST-202601-001','Station 1','Available station',NULL),
+('WST-202601-002','Station 2','Available station',NULL),
+('WST-202601-003','Station 3','Available station',NULL);

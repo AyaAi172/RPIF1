@@ -1,119 +1,92 @@
 <?php
-require_once __DIR__ . "/../admin/includes/db.php";
-require_once __DIR__ . "/../admin/includes/auth.php";
-require_once __DIR__ . "/../admin/includes/csrf.php";
-
+require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
 requireLogin();
 $title = "Account";
 
-$error = "";
-$success = "";
+$msg = "";
+$user = getCurrentUser($conn);
 
-// Load current user data
-$stmt = $conn->prepare("SELECT username, full_name, email, role FROM users WHERE user_id = ?");
-$stmt->bind_param("i", $_SESSION['user_id']);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  checkCsrf();
 
-if (!$user) {
-    die("User not found.");
-}
+  $username  = trim($_POST["username"] ?? "");
+  $full_name = trim($_POST["full_name"] ?? "");
+  $email     = trim($_POST["email"] ?? "");
 
-// Handle update
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_check();
+  $new1 = $_POST["new_password"] ?? "";
+  $new2 = $_POST["new_password2"] ?? "";
 
-    $username  = trim($_POST['username'] ?? '');
-    $full_name = trim($_POST['full_name'] ?? '');
-    $email     = trim($_POST['email'] ?? '');
+  if ($username === "" || $full_name === "" || $email === "") {
+    $msg = "Please fill all required fields.";
+  } else if ($new1 !== "" && $new1 !== $new2) {
+    $msg = "New passwords do not match.";
+  } else {
+    // update basic fields
+    $stmt = mysqli_prepare($conn, "UPDATE users SET username=?, full_name=?, email=? WHERE user_id=?");
+    mysqli_stmt_bind_param($stmt, "sssi", $username, $full_name, $email, $_SESSION["user_id"]);
+    $ok = mysqli_stmt_execute($stmt);
 
-    $new_password1 = $_POST['new_password'] ?? '';
-    $new_password2 = $_POST['new_password2'] ?? '';
-
-    if ($username === '' || $full_name === '' || $email === '') {
-        $error = "Username, full name, and email are required.";
-    } elseif ($new_password1 !== '' && $new_password1 !== $new_password2) {
-        $error = "New passwords do not match.";
-    } else {
-        try {
-            // Update basic fields
-            $stmt = $conn->prepare("UPDATE users SET username = ?, full_name = ?, email = ? WHERE user_id = ?");
-            $stmt->bind_param("sssi", $username, $full_name, $email, $_SESSION['user_id']);
-            $stmt->execute();
-
-            // Update password only if provided
-            if ($new_password1 !== '') {
-                $hashed = password_hash($new_password1, PASSWORD_DEFAULT);
-                $stmt2 = $conn->prepare("UPDATE users SET password = ? WHERE user_id = ?");
-                $stmt2->bind_param("si", $hashed, $_SESSION['user_id']);
-                $stmt2->execute();
-            }
-
-            // Keep session username in sync
-            $_SESSION['username'] = $username;
-
-            $success = "Account updated successfully.";
-
-            // Reload updated data for display
-            $stmt = $conn->prepare("SELECT username, full_name, email, role FROM users WHERE user_id = ?");
-            $stmt->bind_param("i", $_SESSION['user_id']);
-            $stmt->execute();
-            $user = $stmt->get_result()->fetch_assoc();
-
-        } catch (mysqli_sql_exception $e) {
-            // Most common: duplicate username/email because both are UNIQUE
-            $error = "Update failed. Username or email may already be in use.";
-        }
+    // update password if user typed it
+    if ($ok && $new1 !== "") {
+      $hash = password_hash($new1, PASSWORD_DEFAULT);
+      $stmt2 = mysqli_prepare($conn, "UPDATE users SET password=? WHERE user_id=?");
+      mysqli_stmt_bind_param($stmt2, "si", $hash, $_SESSION["user_id"]);
+      mysqli_stmt_execute($stmt2);
     }
+
+    if ($ok) {
+      $_SESSION["username"] = $username;
+      $msg = "Account updated.";
+      $user = getCurrentUser($conn);
+    } else {
+      $msg = "Update failed. Username/email may already exist.";
+    }
+  }
 }
 
-require_once __DIR__ . "/../admin/includes/header.php";
+require_once PIF_ROOT . "/includes/header.php";
 ?>
-
-<h1 class="h3 mb-3">My Account</h1>
-
-<?php if ($error): ?>
-  <div class="alert alert-danger"><?= e($error) ?></div>
-<?php endif; ?>
-<?php if ($success): ?>
-  <div class="alert alert-success"><?= e($success) ?></div>
-<?php endif; ?>
-
 <div class="card p-3">
+  <h2 class="h5">My Account</h2>
+
+  <?php if ($msg !== ""): ?>
+    <div class="alert alert-info"><?= esc($msg) ?></div>
+  <?php endif; ?>
+
   <form method="post">
-    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
 
     <div class="row g-3">
       <div class="col-md-4">
         <label class="form-label">Username</label>
-        <input class="form-control" name="username" value="<?= e($user['username']) ?>" required>
+        <input class="form-control" name="username" value="<?= esc($user["username"]) ?>" required>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Full name</label>
-        <input class="form-control" name="full_name" value="<?= e($user['full_name']) ?>" required>
+        <input class="form-control" name="full_name" value="<?= esc($user["full_name"]) ?>" required>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Email</label>
-        <input class="form-control" type="email" name="email" value="<?= e($user['email']) ?>" required>
+        <input class="form-control" type="email" name="email" value="<?= esc($user["email"]) ?>" required>
       </div>
 
       <div class="col-md-6">
-        <label class="form-label">New password (leave empty to keep current)</label>
-        <input class="form-control" type="password" name="new_password" autocomplete="new-password">
+        <label class="form-label">New password (optional)</label>
+        <input class="form-control" type="password" name="new_password">
       </div>
 
       <div class="col-md-6">
         <label class="form-label">Confirm new password</label>
-        <input class="form-control" type="password" name="new_password2" autocomplete="new-password">
+        <input class="form-control" type="password" name="new_password2">
       </div>
 
       <div class="col-12">
-        <button class="btn btn-dark">Save changes</button>
+        <button class="btn btn-dark">Save</button>
       </div>
     </div>
   </form>
 </div>
-
-<?php require_once __DIR__ . "/../admin/includes/footer.php"; ?>
+<?php require_once PIF_ROOT . "/includes/footer.php";
+ ?>

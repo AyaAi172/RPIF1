@@ -1,266 +1,167 @@
 <?php
-require_once __DIR__ . "/includes/db.php";
-require_once __DIR__ . "/includes/auth.php";
-require_once __DIR__ . "/includes/csrf.php";
-
+require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
 requireAdmin();
-$title = "Admin - Users";
+$title = "Admin Users";
 
-$error = "";
-$success = "";
+$msg = "";
 
-// Prevent admin from deleting themselves by mistake
-$currentAdminId = (int)($_SESSION['user_id'] ?? 0);
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  checkCsrf();
+  $action = $_POST["action"] ?? "";
 
-// ---------- HANDLE POST ACTIONS ----------
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_check();
-    $action = $_POST['action'] ?? '';
+  // Create user
+  if ($action === "create") {
+    $username  = trim($_POST["username"] ?? "");
+    $full_name = trim($_POST["full_name"] ?? "");
+    $email     = trim($_POST["email"] ?? "");
+    $pass      = $_POST["password"] ?? "";
+    $role      = ($_POST["role"] ?? "user") === "admin" ? "admin" : "user";
 
-    // A) Create user
-    if ($action === 'create_user') {
-        $username  = trim($_POST['username'] ?? '');
-        $full_name = trim($_POST['full_name'] ?? '');
-        $email     = trim($_POST['email'] ?? '');
-        $password  = $_POST['password'] ?? '';
-        $role      = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
-
-        if ($username === '' || $full_name === '' || $email === '' || $password === '') {
-            $error = "All fields are required to create a user.";
-        } else {
-            try {
-                $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (username, full_name, email, password, role) VALUES (?,?,?,?,?)");
-                $stmt->bind_param("sssss", $username, $full_name, $email, $hashed, $role);
-                $stmt->execute();
-                $success = "User created.";
-            } catch (mysqli_sql_exception $e) {
-                $error = "Create failed. Username or email may already exist.";
-            }
-        }
+    if ($username === "" || $full_name === "" || $email === "" || $pass === "") {
+      $msg = "Fill all fields.";
+    } else {
+      $hash = password_hash($pass, PASSWORD_DEFAULT);
+      $stmt = mysqli_prepare($conn, "INSERT INTO users (username, full_name, email, password, role) VALUES (?,?,?,?,?)");
+      mysqli_stmt_bind_param($stmt, "sssss", $username, $full_name, $email, $hash, $role);
+      if (mysqli_stmt_execute($stmt)) $msg = "User created.";
+      else $msg = "Create failed (username/email may exist).";
     }
+  }
 
-    // B) Promote / demote user role
-    if ($action === 'set_role') {
-        $user_id = (int)($_POST['user_id'] ?? 0);
-        $role = ($_POST['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
+  // Change role
+  if ($action === "role") {
+    $uid = (int)($_POST["user_id"] ?? 0);
+    $role = ($_POST["role"] ?? "user") === "admin" ? "admin" : "user";
 
-        if ($user_id <= 0) {
-            $error = "Invalid user.";
-        } elseif ($user_id === $currentAdminId && $role !== 'admin') {
-            $error = "You cannot remove your own admin rights while logged in.";
-        } else {
-            $stmt = $conn->prepare("UPDATE users SET role = ? WHERE user_id = ?");
-            $stmt->bind_param("si", $role, $user_id);
-            $stmt->execute();
-            $success = "Role updated.";
-        }
+    if ($uid === (int)$_SESSION["user_id"]) {
+      $msg = "You cannot change your own role while logged in.";
+    } else {
+      $stmt = mysqli_prepare($conn, "UPDATE users SET role=? WHERE user_id=?");
+      mysqli_stmt_bind_param($stmt, "si", $role, $uid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Role updated.";
     }
+  }
 
-    // C) Reset password
-    if ($action === 'reset_password') {
-        $user_id = (int)($_POST['user_id'] ?? 0);
-        $new_password = $_POST['new_password'] ?? '';
-
-        if ($user_id <= 0 || $new_password === '') {
-            $error = "Invalid user or empty password.";
-        } else {
-            $hashed = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET password = ? WHERE user_id = ?");
-            $stmt->bind_param("si", $hashed, $user_id);
-            $stmt->execute();
-            $success = "Password reset.";
-        }
+  // Reset password
+  if ($action === "reset") {
+    $uid = (int)($_POST["user_id"] ?? 0);
+    $new = $_POST["new_password"] ?? "";
+    if ($new === "") $msg = "Password is empty.";
+    else {
+      $hash = password_hash($new, PASSWORD_DEFAULT);
+      $stmt = mysqli_prepare($conn, "UPDATE users SET password=? WHERE user_id=?");
+      mysqli_stmt_bind_param($stmt, "si", $hash, $uid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Password reset.";
     }
+  }
 
-    // D) Delete user SAFELY:
-    // 1) Unassign stations (user_id = NULL)
-    // 2) Delete user
-    if ($action === 'delete_user') {
-        $user_id = (int)($_POST['user_id'] ?? 0);
-
-        if ($user_id <= 0) {
-            $error = "Invalid user.";
-        } elseif ($user_id === $currentAdminId) {
-            $error = "You cannot delete yourself while logged in.";
-        } else {
-            try {
-                $conn->begin_transaction();
-
-                // Unassign stations so inventory is not lost
-                $stmt1 = $conn->prepare("UPDATE stations SET user_id = NULL WHERE user_id = ?");
-                $stmt1->bind_param("i", $user_id);
-                $stmt1->execute();
-
-                // Delete user
-                $stmt2 = $conn->prepare("DELETE FROM users WHERE user_id = ?");
-                $stmt2->bind_param("i", $user_id);
-                $stmt2->execute();
-
-                $conn->commit();
-                $success = "User deleted (stations unassigned).";
-            } catch (mysqli_sql_exception $e) {
-                $conn->rollback();
-                $error = "Delete failed due to database constraints.";
-            }
-        }
+  // Delete user safely (unassign stations first)
+  if ($action === "delete") {
+    $uid = (int)($_POST["user_id"] ?? 0);
+    if ($uid === (int)$_SESSION["user_id"]) {
+      $msg = "You cannot delete yourself while logged in.";
+    } else {
+      mysqli_query($conn, "UPDATE stations SET user_id=NULL WHERE user_id=$uid");
+      mysqli_query($conn, "DELETE FROM users WHERE user_id=$uid");
+      $msg = "User deleted (stations became available).";
     }
+  }
 }
 
-// ---------- LOAD ALL USERS + STATION COUNT ----------
-$sql = "
-SELECT u.user_id, u.username, u.full_name, u.email, u.role,
-       (SELECT COUNT(*) FROM stations s WHERE s.user_id = u.user_id) AS station_count
-FROM users u
-ORDER BY (u.role = 'admin') DESC, u.username ASC
-";
-$users = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
+// Load users
+$users = [];
+$res = mysqli_query($conn, "SELECT user_id, username, full_name, email, role FROM users ORDER BY role DESC, username");
+while ($row = mysqli_fetch_assoc($res)) $users[] = $row;
 
-require_once __DIR__ . "/includes/header.php";
+require_once PIF_ROOT . "/includes/header.php";
 ?>
 
 <h1 class="h3 mb-3">Admin - Users</h1>
 
-<?php if ($error): ?>
-  <div class="alert alert-danger"><?= e($error) ?></div>
-<?php endif; ?>
-<?php if ($success): ?>
-  <div class="alert alert-success"><?= e($success) ?></div>
+<?php if ($msg !== ""): ?>
+  <div class="alert alert-info"><?= esc($msg) ?></div>
 <?php endif; ?>
 
 <div class="row g-3">
-  <!-- Create user -->
   <div class="col-lg-4">
     <div class="card p-3">
       <h2 class="h5">Create user</h2>
-
       <form method="post">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="create_user">
+        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+        <input type="hidden" name="action" value="create">
 
-        <div class="mb-2">
-          <label class="form-label">Username</label>
-          <input class="form-control" name="username" required>
-        </div>
+        <input class="form-control mb-2" name="username" placeholder="username" required>
+        <input class="form-control mb-2" name="full_name" placeholder="full name" required>
+        <input class="form-control mb-2" type="email" name="email" placeholder="email" required>
+        <input class="form-control mb-2" type="password" name="password" placeholder="password" required>
 
-        <div class="mb-2">
-          <label class="form-label">Full name</label>
-          <input class="form-control" name="full_name" required>
-        </div>
-
-        <div class="mb-2">
-          <label class="form-label">Email</label>
-          <input class="form-control" type="email" name="email" required>
-        </div>
-
-        <div class="mb-2">
-          <label class="form-label">Password</label>
-          <input class="form-control" type="password" name="password" required>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Role</label>
-          <select class="form-select" name="role">
-            <option value="user">user</option>
-            <option value="admin">admin</option>
-          </select>
-        </div>
+        <select class="form-select mb-3" name="role">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
 
         <button class="btn btn-dark w-100">Create</button>
       </form>
     </div>
   </div>
 
-  <!-- Users list -->
   <div class="col-lg-8">
     <div class="card p-3">
       <h2 class="h5">All users</h2>
 
-      <?php if (empty($users)): ?>
-        <p class="text-muted mb-0">No users found.</p>
-      <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr><th>ID</th><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($users as $u): ?>
               <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Full name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Stations</th>
-                <th style="width: 360px;">Actions</th>
+                <td><?= (int)$u["user_id"] ?></td>
+                <td><?= esc($u["username"]) ?></td>
+                <td><?= esc($u["full_name"]) ?></td>
+                <td><?= esc($u["email"]) ?></td>
+                <td><?= esc($u["role"]) ?></td>
+                <td class="d-flex flex-wrap gap-2">
+
+                  <form method="post" class="d-flex gap-2">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="role">
+                    <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
+                    <select class="form-select form-select-sm" name="role">
+                      <option value="user" <?= $u["role"]==="user"?"selected":"" ?>>user</option>
+                      <option value="admin" <?= $u["role"]==="admin"?"selected":"" ?>>admin</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-dark">Update</button>
+                  </form>
+
+                  <form method="post" class="d-flex gap-2">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="reset">
+                    <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
+                    <input class="form-control form-control-sm" type="password" name="new_password" placeholder="new pass" required>
+                    <button class="btn btn-sm btn-outline-secondary">Reset</button>
+                  </form>
+
+                  <form method="post" onsubmit="return confirm('Delete user? Their stations become available.');">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                  </form>
+
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($users as $u): ?>
-                <?php
-                  $uid = (int)$u['user_id'];
-                  $isSelf = ($uid === $currentAdminId);
-                ?>
-                <tr>
-                  <td><?= $uid ?></td>
-                  <td><?= e($u['username']) ?></td>
-                  <td><?= e($u['full_name']) ?></td>
-                  <td><?= e($u['email']) ?></td>
-                  <td>
-                    <?php if ($u['role'] === 'admin'): ?>
-                      <span class="badge bg-dark">admin</span>
-                    <?php else: ?>
-                      <span class="badge bg-secondary">user</span>
-                    <?php endif; ?>
-                  </td>
-                  <td><?= (int)$u['station_count'] ?></td>
-                  <td class="d-flex flex-wrap gap-2">
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
 
-                    <!-- Set role -->
-                    <form method="post" class="d-flex gap-2">
-                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                      <input type="hidden" name="action" value="set_role">
-                      <input type="hidden" name="user_id" value="<?= $uid ?>">
-
-                      <select class="form-select form-select-sm" name="role" <?= $isSelf ? 'disabled' : '' ?>>
-                        <option value="user" <?= ($u['role'] === 'user') ? 'selected' : '' ?>>user</option>
-                        <option value="admin" <?= ($u['role'] === 'admin') ? 'selected' : '' ?>>admin</option>
-                      </select>
-
-                      <button class="btn btn-sm btn-outline-dark" <?= $isSelf ? 'disabled' : '' ?>>Update</button>
-                    </form>
-
-                    <!-- Reset password -->
-                    <form method="post" class="d-flex gap-2">
-                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                      <input type="hidden" name="action" value="reset_password">
-                      <input type="hidden" name="user_id" value="<?= $uid ?>">
-
-                      <input class="form-control form-control-sm" type="password" name="new_password"
-                             placeholder="New password" required>
-
-                      <button class="btn btn-sm btn-outline-secondary">Reset</button>
-                    </form>
-
-                    <!-- Delete user -->
-                    <form method="post"
-                          onsubmit="return confirm('Delete this user? Their stations will be unassigned (available again).');">
-                      <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                      <input type="hidden" name="action" value="delete_user">
-                      <input type="hidden" name="user_id" value="<?= $uid ?>">
-                      <button class="btn btn-sm btn-outline-danger" <?= $isSelf ? 'disabled' : '' ?>>Delete</button>
-                    </form>
-
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      <?php endif; ?>
-
-      <p class="text-muted mt-2 mb-0">
-        Delete user is safe: stations are set to <code>NULL</code> owner first (available again).
-      </p>
     </div>
   </div>
 </div>
 
-<?php require_once __DIR__ . "/includes/footer.php"; ?>
+<?php require_once PIF_ROOT . "/includes/footer.php";
+ ?>

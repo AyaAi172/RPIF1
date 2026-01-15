@@ -1,2 +1,4 @@
+/* Simple student-friendly design */
 body { background: #f6f7fb; }
 .card { border-radius: 14px; }
+.table { background: white; }
