@@ -77,7 +77,10 @@ require_once PIF_ROOT . "/includes/header.php";
         <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
         <input type="hidden" name="action" value="create">
 
-        <input class="form-control mb-2" name="serial" placeholder="WST-202601-010" required>
+        <input class="form-control mb-2"
+          name="serial"
+          placeholder="e.g. ST-4004-000"
+          required>
         <input class="form-control mb-2" name="name" placeholder="Station name" required>
         <input class="form-control mb-3" name="description" placeholder="Description (optional)">
 
@@ -93,7 +96,14 @@ require_once PIF_ROOT . "/includes/header.php";
       <div class="table-responsive">
         <table class="table table-sm align-middle">
           <thead>
-            <tr><th>ID</th><th>Serial</th><th>Name</th><th>Status</th><th>Owner</th><th>Actions</th></tr>
+            <tr>
+              <th>ID</th>
+              <th>Serial</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Owner</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             <?php foreach ($stations as $s): ?>
@@ -147,4 +157,4 @@ require_once PIF_ROOT . "/includes/header.php";
 </div>
 
 <?php require_once PIF_ROOT . "/includes/footer.php";
- ?>
+?>

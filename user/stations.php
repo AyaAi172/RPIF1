@@ -90,7 +90,13 @@ require_once PIF_ROOT . "/includes/header.php";
         <input type="hidden" name="action" value="register">
 
         <label class="form-label">Serial number</label>
-        <input class="form-control mb-2" name="serial" required>
+        <input
+  class="form-control mb-2"
+  name="serial"
+  placeholder="e.g. ST-4004-000"
+  required
+>
+
 
         <button class="btn btn-dark w-100">Register</button>
       </form>

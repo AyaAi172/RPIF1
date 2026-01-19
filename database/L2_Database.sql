@@ -118,18 +118,11 @@ CREATE TABLE friendships (
   CHECK (user_id <> friend_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- SEED ADMIN USER (password: admin123)
-INSERT INTO users (username, full_name, email, password, role)
-VALUES (
-  'admin',
-  'Admin User',
-  'admin@local',
-  '$2y$10$0j9x3m8u8P8a8dVt4zYxJOV4wqOQbZpN4q5U2YvQ3S9rKqf2zZp4C',
-  'admin'
-);
+
 
 -- Sample available stations (user_id NULL)
 INSERT INTO stations (serial_number, name, description, user_id) VALUES
-('WST-202601-001','Station 1','Available station',NULL),
-('WST-202601-002','Station 2','Available station',NULL),
-('WST-202601-003','Station 3','Available station',NULL);
+('ST-4004-001','Station 1','Available station',NULL),
+('ST-4004-002','Station 2','Available station',NULL),
+('ST-4004-003','Station 3','Available station',NULL);
+
