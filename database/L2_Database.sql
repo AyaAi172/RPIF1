@@ -112,6 +112,7 @@ CREATE TABLE friendships (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT fk_friend_friend
+
     FOREIGN KEY (friend_user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
@@ -124,17 +125,9 @@ CREATE TABLE friendships (
 INSERT INTO stations (serial_number, name, description, user_id) VALUES
 ('ST-4004-001','Station 1','Available station',NULL),
 ('ST-4004-002','Station 2','Available station',NULL),
-('ST-4004-003','Station 3','Available station',NULL);
+('ST-4004-003','Station 3','Available station',NULL),
+('1','Station 4','Available station',NULL);
 
-INSERT INTO measurements
-(station_id, measured_at, temperature, humidity, pressure, light, gas)
-VALUES
-(1, '2026-01-18 09:00:00', 21.50, 45.20, 1012.30, 320, 410),
-(1, '2026-01-18 10:00:00', 22.10, 44.10, 1012.10, 500, 420),
-(1, '2026-01-18 11:00:00', 22.90, 43.50, 1011.80, 650, 430),
-(1, '2026-01-18 12:00:00', 23.40, 42.90, 1011.40, 720, 440),
-(1, '2026-01-18 13:00:00', 23.10, 43.20, 1011.60, 680, 435),
-(1, '2026-01-18 14:00:00', 22.60, 44.00, 1011.90, 540, 425),
-(2, '2026-01-18 15:00:00', 22.00, 45.10, 1012.40, 400, 415);
+
 
 
