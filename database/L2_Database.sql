@@ -127,7 +127,3 @@ INSERT INTO stations (serial_number, name, description, user_id) VALUES
 ('ST-4004-002','Station 2','Available station',NULL),
 ('ST-4004-003','Station 3','Available station',NULL),
 ('1','Station 4','Available station',NULL);
-
-
-
-
