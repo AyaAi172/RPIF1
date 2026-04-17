@@ -15,6 +15,83 @@ require_once PIF_ROOT . "/includes/db.php";
 require_once PIF_ROOT . "/includes/auth.php";
 require_once PIF_ROOT . "/includes/csrf.php";
 
+if (!function_exists("hasThemeColumn")) {
+    function hasThemeColumn($conn) {
+        static $hasTheme = null;
+
+        if ($hasTheme !== null) {
+            return $hasTheme;
+        }
+
+        $sql = "
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'users'
+              AND COLUMN_NAME = 'theme'
+            LIMIT 1
+        ";
+
+        $res = mysqli_query($conn, $sql);
+        $hasTheme = ($res && mysqli_fetch_assoc($res)) ? true : false;
+        return $hasTheme;
+    }
+}
+
+if (!function_exists("getThemePreference")) {
+    function getThemePreference($conn) {
+        $allowedThemes = ["light", "dark"];
+
+        if (isset($_SESSION["theme"]) && in_array($_SESSION["theme"], $allowedThemes, true)) {
+            return $_SESSION["theme"];
+        }
+
+        if (isset($_COOKIE["pif_theme"]) && in_array($_COOKIE["pif_theme"], $allowedThemes, true)) {
+            return $_COOKIE["pif_theme"];
+        }
+
+        if (isset($_SESSION["user_id"]) && hasThemeColumn($conn)) {
+            $stmt = mysqli_prepare($conn, "SELECT theme FROM users WHERE user_id = ?");
+            if (!$stmt) {
+                return "light";
+            }
+            mysqli_stmt_bind_param($stmt, "i", $_SESSION["user_id"]);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            if ($row = mysqli_fetch_assoc($res)) {
+                $theme = $row["theme"] ?? "light";
+                if (!in_array($theme, $allowedThemes, true)) {
+                    $theme = "light";
+                }
+
+                $_SESSION["theme"] = $theme;
+                setcookie("pif_theme", $theme, time() + (60 * 60 * 24 * 365), "/");
+                return $theme;
+            }
+        }
+
+        return "light";
+    }
+}
+
+if (!function_exists("saveThemePreference")) {
+    function saveThemePreference($conn, $theme) {
+        $theme = ($theme === "dark") ? "dark" : "light";
+
+        $_SESSION["theme"] = $theme;
+        setcookie("pif_theme", $theme, time() + (60 * 60 * 24 * 365), "/");
+
+        if (isset($_SESSION["user_id"]) && hasThemeColumn($conn)) {
+            $stmt = mysqli_prepare($conn, "UPDATE users SET theme = ? WHERE user_id = ?");
+            if (!$stmt) {
+                return;
+            }
+            mysqli_stmt_bind_param($stmt, "si", $theme, $_SESSION["user_id"]);
+            mysqli_stmt_execute($stmt);
+        }
+    }
+}
+
 if (!function_exists("esc")) {
     function esc($text) {
         return htmlspecialchars($text ?? "", ENT_QUOTES, "UTF-8");
@@ -44,7 +121,11 @@ function getCurrentUser($conn) {
 
     $id = (int)$_SESSION["user_id"];
 
-    $stmt = mysqli_prepare($conn, "SELECT user_id, username, full_name, email, role FROM users WHERE user_id=?");
+    $sql = hasThemeColumn($conn)
+        ? "SELECT user_id, username, full_name, email, role, theme FROM users WHERE user_id=?"
+        : "SELECT user_id, username, full_name, email, role FROM users WHERE user_id=?";
+
+    $stmt = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id);
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
