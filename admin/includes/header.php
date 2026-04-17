@@ -1,6 +1,20 @@
 <?php
 require_once $_SERVER["DOCUMENT_ROOT"] . "/RPIF1/admin/includes/CommonCode.php";
 $title = $title ?? "RPIF1";
+
+$pendingFriendRequests = 0;
+if (isLoggedIn()) {
+  $stmt = mysqli_prepare($conn, "
+    SELECT COUNT(*) AS total
+    FROM friend_requests
+    WHERE receiver_user_id = ? AND status = 'pending'
+  ");
+  mysqli_stmt_bind_param($stmt, "i", $_SESSION["user_id"]);
+  mysqli_stmt_execute($stmt);
+  $res = mysqli_stmt_get_result($stmt);
+  $row = mysqli_fetch_assoc($res);
+  $pendingFriendRequests = (int)($row["total"] ?? 0);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,6 +43,14 @@ $title = $title ?? "RPIF1";
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/welcome.php">Welcome</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/stations.php">Stations</a></li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/measurements.php">Measurements</a></li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center gap-2" href="/RPIF1/user/friends.php">
+              <span>Friends</span>
+              <?php if ($pendingFriendRequests > 0): ?>
+                <span class="badge rounded-pill bg-danger"><?= $pendingFriendRequests ?></span>
+              <?php endif; ?>
+            </a>
+          </li>
           <li class="nav-item"><a class="nav-link" href="/RPIF1/user/account.php">Account</a></li>
         <?php endif; ?>
 

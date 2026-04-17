@@ -1,4 +1,112 @@
 /* Simple student-friendly design */
-body { background: #f6f7fb; }
-.card { border-radius: 14px; }
-.table { background: white; }
+body {
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.08), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f5fb 55%, #eef2f7 100%);
+  min-height: 100vh;
+}
+
+.card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.table {
+  background: white;
+}
+
+.table thead th {
+  border-bottom-width: 1px;
+  color: #344054;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.soft-panel {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(13, 110, 253, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.section-kicker {
+  color: #667085;
+  font-size: 0.92rem;
+  margin-bottom: 0;
+}
+
+.metric-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 247, 250, 0.96));
+  border-radius: 18px;
+  height: 100%;
+  padding: 1rem 1.1rem;
+}
+
+.metric-label {
+  color: #667085;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  color: #101828;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: 0.4rem;
+}
+
+.metric-note {
+  color: #667085;
+  font-size: 0.92rem;
+  margin-top: 0.35rem;
+}
+
+.empty-state {
+  color: #667085;
+  background: #f8fafc;
+  border: 1px dashed rgba(102, 112, 133, 0.35);
+  border-radius: 14px;
+  margin: 0;
+  padding: 1rem;
+}
+
+.friends-stack > .card + .card {
+  margin-top: 1rem;
+}
+
+.card-header-inline {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 991.98px) {
+  .metric-value {
+    font-size: 1.6rem;
+  }
+}

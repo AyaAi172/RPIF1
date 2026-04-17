@@ -15,6 +15,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS collection_measurements;
 DROP TABLE IF EXISTS collection_shares;
+DROP TABLE IF EXISTS friend_requests;
 DROP TABLE IF EXISTS friendships;
 DROP TABLE IF EXISTS measurements;
 DROP TABLE IF EXISTS collections;
@@ -101,6 +102,27 @@ CREATE TABLE collection_shares (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE friend_requests (
+  request_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  sender_user_id INT UNSIGNED NOT NULL,
+  receiver_user_id INT UNSIGNED NOT NULL,
+  status ENUM('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  responded_at DATETIME NULL,
+  CONSTRAINT fk_request_sender
+    FOREIGN KEY (sender_user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_request_receiver
+    FOREIGN KEY (receiver_user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CHECK (sender_user_id <> receiver_user_id),
+  UNIQUE KEY uq_pending_pair (sender_user_id, receiver_user_id, status),
+  INDEX idx_requests_receiver_status (receiver_user_id, status),
+  INDEX idx_requests_sender_status (sender_user_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE friendships (
