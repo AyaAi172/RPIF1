@@ -15,9 +15,25 @@ require_once PIF_ROOT . "/includes/db.php";
 require_once PIF_ROOT . "/includes/auth.php";
 require_once PIF_ROOT . "/includes/csrf.php";
 
-// Safe echo
-function e($text) {
-    return htmlspecialchars($text ?? "", ENT_QUOTES, "UTF-8");
+if (!function_exists("esc")) {
+    function esc($text) {
+        return htmlspecialchars($text ?? "", ENT_QUOTES, "UTF-8");
+    }
+}
+
+if (!function_exists("e")) {
+    function e($text) {
+        return esc($text);
+    }
+}
+
+function toSqlDateTime($value) {
+    $value = trim((string)$value);
+    if ($value === "") {
+        return "";
+    }
+
+    return str_replace("T", " ", $value) . ":00";
 }
 
 // Return current user info from database (used in account.php)

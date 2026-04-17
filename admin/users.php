@@ -33,7 +33,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $uid = (int)($_POST["user_id"] ?? 0);
     $role = ($_POST["role"] ?? "user") === "admin" ? "admin" : "user";
 
-    if ($uid === (int)$_SESSION["user_id"]) {
+    if ($uid <= 0) {
+      $msg = "Invalid user.";
+    } else if ($uid === (int)$_SESSION["user_id"]) {
       $msg = "You cannot change your own role while logged in.";
     } else {
       $stmt = mysqli_prepare($conn, "UPDATE users SET role=? WHERE user_id=?");
@@ -47,7 +49,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   if ($action === "reset") {
     $uid = (int)($_POST["user_id"] ?? 0);
     $new = $_POST["new_password"] ?? "";
-    if ($new === "") $msg = "Password is empty.";
+    if ($uid <= 0) $msg = "Invalid user.";
+    else if ($new === "") $msg = "Password is empty.";
     else {
       $hash = password_hash($new, PASSWORD_DEFAULT);
       $stmt = mysqli_prepare($conn, "UPDATE users SET password=? WHERE user_id=?");
@@ -60,12 +63,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   // Delete user safely (unassign stations first)
   if ($action === "delete") {
     $uid = (int)($_POST["user_id"] ?? 0);
-    if ($uid === (int)$_SESSION["user_id"]) {
+    if ($uid <= 0) {
+      $msg = "Invalid user.";
+    } else if ($uid === (int)$_SESSION["user_id"]) {
       $msg = "You cannot delete yourself while logged in.";
     } else {
-      mysqli_query($conn, "UPDATE stations SET user_id=NULL WHERE user_id=$uid");
-      mysqli_query($conn, "DELETE FROM users WHERE user_id=$uid");
-      $msg = "User deleted (stations became available).";
+      mysqli_begin_transaction($conn);
+
+      $stmt = mysqli_prepare($conn, "UPDATE stations SET user_id=NULL WHERE user_id=?");
+      mysqli_stmt_bind_param($stmt, "i", $uid);
+      $ok1 = mysqli_stmt_execute($stmt);
+
+      $stmt = mysqli_prepare($conn, "DELETE FROM users WHERE user_id=?");
+      mysqli_stmt_bind_param($stmt, "i", $uid);
+      $ok2 = mysqli_stmt_execute($stmt);
+
+      if ($ok1 && $ok2) {
+        mysqli_commit($conn);
+        $msg = "User deleted (stations became available).";
+      } else {
+        mysqli_rollback($conn);
+        $msg = "Delete failed.";
+      }
     }
   }
 }

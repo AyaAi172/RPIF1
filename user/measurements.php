@@ -18,14 +18,6 @@ $station_id = (int)($_GET["station_id"] ?? 0);
 $start = $_GET["start"] ?? "";
 $end   = $_GET["end"] ?? "";
 
-// helper: datetime-local to SQL datetime
-function toSqlDateTime($x) {
-  $x = trim($x);
-  if ($x === "") return "";
-  $x = str_replace("T", " ", $x) . ":00";
-  return $x;
-}
-
 if (isset($_GET["filter"])) {
   $startSql = toSqlDateTime($start);
   $endSql   = toSqlDateTime($end);

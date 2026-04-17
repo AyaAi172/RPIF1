@@ -4,6 +4,11 @@ $title = "Register";
 
 $msg = "";
 
+if (isLoggedIn()) {
+  header("Location: /RPIF1/user/welcome.php");
+  exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
   checkCsrf();
 

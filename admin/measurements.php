@@ -10,8 +10,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $action = $_POST["action"] ?? "";
   if ($action === "delete") {
     $mid = (int)($_POST["measurement_id"] ?? 0);
-    mysqli_query($conn, "DELETE FROM measurements WHERE measurement_id=$mid");
-    $msg = "Measurement deleted.";
+    if ($mid <= 0) {
+      $msg = "Invalid measurement.";
+    } else {
+      $stmt = mysqli_prepare($conn, "DELETE FROM measurements WHERE measurement_id=?");
+      mysqli_stmt_bind_param($stmt, "i", $mid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Measurement deleted.";
+    }
   }
 }
 
@@ -24,16 +30,10 @@ $station_id = (int)($_GET["station_id"] ?? 0);
 $start = $_GET["start"] ?? "";
 $end   = $_GET["end"] ?? "";
 
-function toSqlDateTime2($x) {
-  $x = trim($x);
-  if ($x === "") return "";
-  return str_replace("T", " ", $x) . ":00";
-}
-
 $rows = [];
 if (isset($_GET["filter"])) {
-  $startSql = toSqlDateTime2($start);
-  $endSql   = toSqlDateTime2($end);
+  $startSql = toSqlDateTime($start);
+  $endSql   = toSqlDateTime($end);
 
   if ($station_id > 0 && $startSql !== "" && $endSql !== "") {
     $stmt = mysqli_prepare($conn, "

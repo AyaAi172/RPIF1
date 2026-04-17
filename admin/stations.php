@@ -26,22 +26,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   if ($action === "assign") {
     $sid = (int)($_POST["station_id"] ?? 0);
     $uid = (int)($_POST["user_id"] ?? 0);
-    $stmt = mysqli_prepare($conn, "UPDATE stations SET user_id=? WHERE station_id=?");
-    mysqli_stmt_bind_param($stmt, "ii", $uid, $sid);
-    mysqli_stmt_execute($stmt);
-    $msg = "Assigned.";
+    if ($sid <= 0 || $uid <= 0) {
+      $msg = "Choose a valid station and user.";
+    } else {
+      $stmt = mysqli_prepare($conn, "UPDATE stations SET user_id=? WHERE station_id=?");
+      mysqli_stmt_bind_param($stmt, "ii", $uid, $sid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Assigned.";
+    }
   }
 
   if ($action === "unassign") {
     $sid = (int)($_POST["station_id"] ?? 0);
-    mysqli_query($conn, "UPDATE stations SET user_id=NULL WHERE station_id=$sid");
-    $msg = "Unassigned (available).";
+    if ($sid <= 0) {
+      $msg = "Invalid station.";
+    } else {
+      $stmt = mysqli_prepare($conn, "UPDATE stations SET user_id=NULL WHERE station_id=?");
+      mysqli_stmt_bind_param($stmt, "i", $sid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Unassigned (available).";
+    }
   }
 
   if ($action === "delete") {
     $sid = (int)($_POST["station_id"] ?? 0);
-    mysqli_query($conn, "DELETE FROM stations WHERE station_id=$sid");
-    $msg = "Deleted permanently.";
+    if ($sid <= 0) {
+      $msg = "Invalid station.";
+    } else {
+      $stmt = mysqli_prepare($conn, "DELETE FROM stations WHERE station_id=?");
+      mysqli_stmt_bind_param($stmt, "i", $sid);
+      mysqli_stmt_execute($stmt);
+      $msg = "Deleted permanently.";
+    }
   }
 }
 
