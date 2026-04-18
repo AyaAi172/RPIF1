@@ -127,7 +127,6 @@ CREATE TABLE friend_requests (
     FOREIGN KEY (receiver_user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CHECK (sender_user_id <> receiver_user_id),
   UNIQUE KEY uq_pending_pair (sender_user_id, receiver_user_id, status),
   INDEX idx_requests_receiver_status (receiver_user_id, status),
   INDEX idx_requests_sender_status (sender_user_id, status)
@@ -142,11 +141,9 @@ CREATE TABLE friendships (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT fk_friend_friend
-
     FOREIGN KEY (friend_user_id) REFERENCES users(user_id)
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CHECK (user_id <> friend_user_id)
+    ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

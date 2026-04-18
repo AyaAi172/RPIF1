@@ -32,11 +32,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
       mysqli_stmt_bind_param($stmt, "ssss", $username, $full_name, $email, $hash);
 
-      if (mysqli_stmt_execute($stmt)) {
-        $msg = "Account created. You can login now.";
-      } else {
-        error_log("Register execute failed: " . mysqli_stmt_error($stmt));
-        $msg = "Username or email already exists, or the database user cannot insert new accounts.";
+      try {
+        if (mysqli_stmt_execute($stmt)) {
+          $msg = "Account created. You can login now.";
+        } else {
+          error_log("Register execute failed: " . mysqli_stmt_error($stmt));
+          $msg = "Username or email already exists, or the database user cannot insert new accounts.";
+        }
+      } catch (mysqli_sql_exception $e) {
+        error_log("Register execute exception: " . $e->getMessage());
+        $msg = "Username or email already exists.";
       }
     }
   }

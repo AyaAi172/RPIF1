@@ -38,6 +38,36 @@ if (!function_exists("hasThemeColumn")) {
     }
 }
 
+if (!function_exists("hasTable")) {
+    function hasTable($conn, $tableName) {
+        static $tableCache = [];
+
+        if (isset($tableCache[$tableName])) {
+            return $tableCache[$tableName];
+        }
+
+        $sql = "
+            SELECT 1
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+            LIMIT 1
+        ";
+
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            $tableCache[$tableName] = false;
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt, "s", $tableName);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        $tableCache[$tableName] = ($res && mysqli_fetch_assoc($res)) ? true : false;
+        return $tableCache[$tableName];
+    }
+}
+
 if (!function_exists("getThemePreference")) {
     function getThemePreference($conn) {
         $allowedThemes = ["light", "dark"];

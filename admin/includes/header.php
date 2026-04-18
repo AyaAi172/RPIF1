@@ -19,17 +19,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["action"] ?? "") === "toggl
 }
 
 $pendingFriendRequests = 0;
-if (isLoggedIn()) {
+if (isLoggedIn() && hasTable($conn, "friend_requests")) {
   $stmt = mysqli_prepare($conn, "
     SELECT COUNT(*) AS total
     FROM friend_requests
     WHERE receiver_user_id = ? AND status = 'pending'
   ");
-  mysqli_stmt_bind_param($stmt, "i", $_SESSION["user_id"]);
-  mysqli_stmt_execute($stmt);
-  $res = mysqli_stmt_get_result($stmt);
-  $row = mysqli_fetch_assoc($res);
-  $pendingFriendRequests = (int)($row["total"] ?? 0);
+  if ($stmt) {
+    mysqli_stmt_bind_param($stmt, "i", $_SESSION["user_id"]);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($res);
+    $pendingFriendRequests = (int)($row["total"] ?? 0);
+  }
 }
 
 if (!function_exists("navLinkClass")) {
