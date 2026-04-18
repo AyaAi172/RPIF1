@@ -130,53 +130,99 @@ require_once PIF_ROOT . "/includes/header.php";
     <div class="card p-3">
       <h2 class="h5">All users</h2>
 
-      <div class="table-responsive">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr><th>ID</th><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            <?php foreach ($users as $u): ?>
-              <tr>
-                <td><?= (int)$u["user_id"] ?></td>
-                <td><?= esc($u["username"]) ?></td>
-                <td><?= esc($u["full_name"]) ?></td>
-                <td><?= esc($u["email"]) ?></td>
-                <td><?= esc($u["role"]) ?></td>
-                <td class="d-flex flex-wrap gap-2">
+      <?php if (count($users) === 0): ?>
+        <p class="empty-state">No users yet.</p>
+      <?php else: ?>
+        <div class="management-card-list">
+          <?php foreach ($users as $u): ?>
+            <?php $isCurrentUser = ((int)$u["user_id"] === (int)$_SESSION["user_id"]); ?>
+            <section class="management-card">
+              <div class="management-card-header">
+                <div>
+                  <h3 class="management-card-title"><?= esc($u["username"]) ?></h3>
+                  <p class="management-card-description"><?= esc($u["full_name"]) ?></p>
+                </div>
+                <span class="badge rounded-pill <?= $u["role"] === "admin" ? "text-bg-dark" : "text-bg-secondary" ?>">
+                  <?= esc($u["role"]) ?>
+                </span>
+              </div>
 
-                  <form method="post" class="d-flex gap-2">
-                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="role">
-                    <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
-                    <select class="form-select form-select-sm" name="role">
-                      <option value="user" <?= $u["role"]==="user"?"selected":"" ?>>user</option>
-                      <option value="admin" <?= $u["role"]==="admin"?"selected":"" ?>>admin</option>
-                    </select>
-                    <button class="btn btn-sm btn-outline-dark">Update</button>
-                  </form>
+              <div class="management-card-meta">
+                <div class="management-meta-item">
+                  <span class="management-meta-label">User ID</span>
+                  <span class="management-meta-value"><?= (int)$u["user_id"] ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Full name</span>
+                  <span class="management-meta-value"><?= esc($u["full_name"]) ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Email</span>
+                  <span class="management-meta-value"><?= esc($u["email"]) ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Status</span>
+                  <span class="management-meta-value"><?= $isCurrentUser ? "Current account" : "Managed account" ?></span>
+                </div>
+              </div>
 
-                  <form method="post" class="d-flex gap-2">
-                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="reset">
-                    <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
-                    <input class="form-control form-control-sm" type="password" name="new_password" placeholder="new pass" required>
-                    <button class="btn btn-sm btn-outline-secondary">Reset</button>
-                  </form>
+              <div class="management-card-actions">
+                <form method="post" class="management-form">
+                  <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                  <input type="hidden" name="action" value="role">
+                  <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
+                  <div class="management-form-grid two-fields">
+                    <div>
+                      <label class="collection-inline-label">Role</label>
+                      <select class="form-select form-select-sm" name="role">
+                        <option value="user" <?= $u["role"]==="user"?"selected":"" ?>>user</option>
+                        <option value="admin" <?= $u["role"]==="admin"?"selected":"" ?>>admin</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="collection-inline-label">Notes</label>
+                      <input class="form-control form-control-sm" value="<?= $isCurrentUser ? "You cannot change your own role." : "Choose the access level." ?>" readonly>
+                    </div>
+                    <div>
+                      <label class="collection-inline-label">&nbsp;</label>
+                      <button class="btn btn-sm btn-outline-dark w-100" <?= $isCurrentUser ? "disabled" : "" ?>>Update role</button>
+                    </div>
+                  </div>
+                </form>
 
+                <form method="post" class="management-form">
+                  <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                  <input type="hidden" name="action" value="reset">
+                  <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
+                  <div class="management-form-grid two-fields">
+                    <div>
+                      <label class="collection-inline-label">New password</label>
+                      <input class="form-control form-control-sm" type="password" name="new_password" placeholder="Enter a new password" required>
+                    </div>
+                    <div>
+                      <label class="collection-inline-label">Account</label>
+                      <input class="form-control form-control-sm" value="<?= esc($u["username"]) ?>" readonly>
+                    </div>
+                    <div>
+                      <label class="collection-inline-label">&nbsp;</label>
+                      <button class="btn btn-sm btn-outline-secondary w-100">Reset password</button>
+                    </div>
+                  </div>
+                </form>
+
+                <div class="management-toolbar">
                   <form method="post" onsubmit="return confirm('Delete user? Their stations become available.');">
                     <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="user_id" value="<?= (int)$u["user_id"] ?>">
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                    <button class="btn btn-sm btn-outline-danger" <?= $isCurrentUser ? "disabled" : "" ?>>Delete user</button>
                   </form>
-
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            </section>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
     </div>
   </div>

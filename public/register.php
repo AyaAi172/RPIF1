@@ -26,12 +26,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $hash = password_hash($pass1, PASSWORD_DEFAULT);
 
     $stmt = mysqli_prepare($conn, "INSERT INTO users (username, full_name, email, password, role) VALUES (?,?,?,?, 'user')");
-    mysqli_stmt_bind_param($stmt, "ssss", $username, $full_name, $email, $hash);
-
-    if (mysqli_stmt_execute($stmt)) {
-      $msg = "Account created. You can login now.";
+    if (!$stmt) {
+      error_log("Register prepare failed: " . mysqli_error($conn));
+      $msg = "Registration is currently not available. Please check the server database setup.";
     } else {
-      $msg = "Username or email already exists.";
+      mysqli_stmt_bind_param($stmt, "ssss", $username, $full_name, $email, $hash);
+
+      if (mysqli_stmt_execute($stmt)) {
+        $msg = "Account created. You can login now.";
+      } else {
+        error_log("Register execute failed: " . mysqli_stmt_error($stmt));
+        $msg = "Username or email already exists, or the database user cannot insert new accounts.";
+      }
     }
   }
 }

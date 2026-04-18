@@ -108,58 +108,76 @@ require_once PIF_ROOT . "/includes/header.php";
       <h2 class="h5">My stations</h2>
 
       <?php if (count($myStations) === 0): ?>
-        <p class="text-muted mb-0">No stations yet.</p>
+        <p class="empty-state">No stations yet.</p>
       <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Serial</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th style="width: 220px;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($myStations as $s): ?>
-                <?php $sid = (int)$s["station_id"]; $isEdit = ($editId === $sid); ?>
-                <tr>
-                  <td><?= $sid ?></td>
-                  <td><?= esc($s["serial_number"]) ?></td>
+        <div class="management-card-list">
+          <?php foreach ($myStations as $s): ?>
+            <?php $sid = (int)$s["station_id"]; $isEdit = ($editId === $sid); ?>
+            <section class="management-card">
+              <div class="management-card-header">
+                <div>
+                  <h3 class="management-card-title"><?= esc($s["name"]) ?></h3>
+                  <p class="management-card-description"><?= esc($s["serial_number"]) ?></p>
+                </div>
+                <span class="badge rounded-pill text-bg-dark">Owned by you</span>
+              </div>
 
-                  <?php if ($isEdit): ?>
-                    <form method="post">
+              <div class="management-card-meta three-col">
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Station ID</span>
+                  <span class="management-meta-value"><?= $sid ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Serial number</span>
+                  <span class="management-meta-value"><?= esc($s["serial_number"]) ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Description</span>
+                  <span class="management-meta-value"><?= esc($s["description"] ?: "No description added.") ?></span>
+                </div>
+              </div>
+
+              <div class="management-card-actions">
+                <?php if ($isEdit): ?>
+                  <form method="post" class="management-form">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="station_id" value="<?= $sid ?>">
+
+                    <div class="management-form-grid two-fields">
+                      <div>
+                        <label class="collection-inline-label">Station name</label>
+                        <input class="form-control form-control-sm" name="name" value="<?= esc($s["name"]) ?>" required>
+                      </div>
+                      <div>
+                        <label class="collection-inline-label">Description</label>
+                        <input class="form-control form-control-sm" name="description" value="<?= esc($s["description"] ?? "") ?>">
+                      </div>
+                      <div>
+                        <label class="collection-inline-label">&nbsp;</label>
+                        <button class="btn btn-sm btn-outline-dark w-100">Save changes</button>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="management-toolbar">
+                    <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/stations.php">Cancel</a>
+                  </div>
+                <?php else: ?>
+                  <div class="management-toolbar">
+                    <a class="btn btn-sm btn-outline-dark" href="/RPIF1/user/stations.php?edit=<?= $sid ?>">Edit</a>
+
+                    <form method="post" onsubmit="return confirm('Remove this station? It becomes available again.');">
                       <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                      <input type="hidden" name="action" value="save">
+                      <input type="hidden" name="action" value="unassign">
                       <input type="hidden" name="station_id" value="<?= $sid ?>">
-
-                      <td><input class="form-control form-control-sm" name="name" value="<?= esc($s["name"]) ?>" required></td>
-                      <td><input class="form-control form-control-sm" name="description" value="<?= esc($s["description"] ?? "") ?>"></td>
-                      <td class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-dark">Save</button>
-                        <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/stations.php">Cancel</a>
-                      </td>
+                      <button class="btn btn-sm btn-outline-danger">Remove station</button>
                     </form>
-                  <?php else: ?>
-                    <td><input class="form-control form-control-sm" value="<?= esc($s["name"]) ?>" readonly></td>
-                    <td><input class="form-control form-control-sm" value="<?= esc($s["description"] ?? "") ?>" readonly></td>
-                    <td class="d-flex gap-2">
-                      <a class="btn btn-sm btn-outline-dark" href="/RPIF1/user/stations.php?edit=<?= $sid ?>">Edit</a>
-
-                      <form method="post" onsubmit="return confirm('Remove this station? It becomes available again.');">
-                        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                        <input type="hidden" name="action" value="unassign">
-                        <input type="hidden" name="station_id" value="<?= $sid ?>">
-                        <button class="btn btn-sm btn-outline-danger">Delete</button>
-                      </form>
-                    </td>
-                  <?php endif; ?>
-
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+                  </div>
+                <?php endif; ?>
+              </div>
+            </section>
+          <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>

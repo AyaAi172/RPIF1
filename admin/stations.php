@@ -109,44 +109,62 @@ require_once PIF_ROOT . "/includes/header.php";
     <div class="card p-3">
       <h2 class="h5">All stations</h2>
 
-      <div class="table-responsive">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Serial</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Owner</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($stations as $s): ?>
-              <?php $taken = ($s["user_id"] !== null); ?>
-              <tr>
-                <td><?= (int)$s["station_id"] ?></td>
-                <td><?= esc($s["serial_number"]) ?></td>
-                <td><?= esc($s["name"]) ?></td>
-                <td><?= $taken ? "<span class='badge bg-danger'>Taken</span>" : "<span class='badge bg-success'>Available</span>" ?></td>
-                <td><?= $taken ? esc($s["owner"] ?? "unknown") : "-" ?></td>
-                <td class="d-flex flex-wrap gap-2">
+      <?php if (count($stations) === 0): ?>
+        <p class="empty-state">No stations yet.</p>
+      <?php else: ?>
+        <div class="management-card-list">
+          <?php foreach ($stations as $s): ?>
+            <?php $taken = ($s["user_id"] !== null); ?>
+            <section class="management-card">
+              <div class="management-card-header">
+                <div>
+                  <h3 class="management-card-title"><?= esc($s["name"]) ?></h3>
+                  <p class="management-card-description"><?= esc($s["serial_number"]) ?></p>
+                </div>
+                <span class="badge rounded-pill <?= $taken ? "text-bg-danger" : "text-bg-success" ?>">
+                  <?= $taken ? "Taken" : "Available" ?>
+                </span>
+              </div>
 
-                  <form method="post" class="d-flex gap-2">
-                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                    <input type="hidden" name="action" value="assign">
-                    <input type="hidden" name="station_id" value="<?= (int)$s["station_id"] ?>">
+              <div class="management-card-meta three-col">
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Station ID</span>
+                  <span class="management-meta-value"><?= (int)$s["station_id"] ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Owner</span>
+                  <span class="management-meta-value"><?= $taken ? esc($s["owner"] ?? "unknown") : "Nobody assigned" ?></span>
+                </div>
+                <div class="management-meta-item">
+                  <span class="management-meta-label">Status</span>
+                  <span class="management-meta-value"><?= $taken ? "Assigned to a user" : "Ready to register" ?></span>
+                </div>
+              </div>
 
-                    <select class="form-select form-select-sm" name="user_id" required>
-                      <option value="">Assign to...</option>
-                      <?php foreach ($users as $u): ?>
-                        <option value="<?= (int)$u["user_id"] ?>"><?= esc($u["username"]) ?> (<?= esc($u["role"]) ?>)</option>
-                      <?php endforeach; ?>
-                    </select>
+              <div class="management-card-actions">
+                <form method="post" class="management-form">
+                  <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                  <input type="hidden" name="action" value="assign">
+                  <input type="hidden" name="station_id" value="<?= (int)$s["station_id"] ?>">
 
-                    <button class="btn btn-sm btn-outline-dark">Assign</button>
-                  </form>
+                  <div class="management-form-grid station-assign">
+                    <div>
+                      <label class="collection-inline-label">Assign to user</label>
+                      <select class="form-select form-select-sm" name="user_id" required>
+                        <option value="">Choose user...</option>
+                        <?php foreach ($users as $u): ?>
+                          <option value="<?= (int)$u["user_id"] ?>"><?= esc($u["username"]) ?> (<?= esc($u["role"]) ?>)</option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="collection-inline-label">&nbsp;</label>
+                      <button class="btn btn-sm btn-outline-dark w-100">Assign station</button>
+                    </div>
+                  </div>
+                </form>
 
+                <div class="management-toolbar">
                   <form method="post" onsubmit="return confirm('Unassign station?');">
                     <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
                     <input type="hidden" name="action" value="unassign">
@@ -158,15 +176,14 @@ require_once PIF_ROOT . "/includes/header.php";
                     <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="station_id" value="<?= (int)$s["station_id"] ?>">
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                    <button class="btn btn-sm btn-outline-danger">Delete station</button>
                   </form>
-
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            </section>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
     </div>
   </div>

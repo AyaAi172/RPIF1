@@ -351,113 +351,125 @@ require_once PIF_ROOT . "/includes/header.php";
       <?php if (count($collections) === 0): ?>
         <p class="empty-state">No collections yet.</p>
       <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Station</th>
-                <th>Range</th>
-                <th>Rows</th>
-                <th>Shared with</th>
-                <th style="width: 340px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($collections as $collection): ?>
-                <tr>
-                  <td>
-                    <div class="fw-semibold"><?= esc($collection["name"]) ?></div>
-                    <div class="text-muted small"><?= esc($collection["description"] ?? "") ?></div>
-                  </td>
-                  <td><?= esc($collection["station_name"]) ?> <span class="text-muted">(<?= esc($collection["serial_number"]) ?>)</span></td>
-                  <td>
-                    <div class="range-cell">
-                      <?= esc($collection["start_at"]) ?>
-                      <span class="range-end">to <?= esc($collection["end_at"]) ?></span>
+        <div class="collection-card-list">
+          <?php foreach ($collections as $collection): ?>
+            <section class="collection-card">
+              <div class="collection-card-header">
+                <div>
+                  <h3 class="collection-card-title mb-1"><?= esc($collection["name"]) ?></h3>
+                  <p class="collection-card-description mb-0">
+                    <?= esc($collection["description"] ?: "No description added.") ?>
+                  </p>
+                </div>
+                <div class="collection-card-badge">
+                  <?= (int)$collection["measurement_count"] ?> rows
+                </div>
+              </div>
+
+              <div class="collection-card-meta">
+                <div class="collection-meta-item">
+                  <span class="collection-meta-label">Station</span>
+                  <span class="collection-meta-value">
+                    <?= esc($collection["station_name"]) ?> (<?= esc($collection["serial_number"]) ?>)
+                  </span>
+                </div>
+                <div class="collection-meta-item collection-meta-item-wide">
+                  <span class="collection-meta-label">Date range</span>
+                  <span class="collection-meta-value">
+                    <?= esc($collection["start_at"]) ?> to <?= esc($collection["end_at"]) ?>
+                  </span>
+                </div>
+                <div class="collection-meta-item">
+                  <span class="collection-meta-label">Shared with</span>
+                  <span class="collection-meta-value"><?= esc($collection["shared_with"] ?: "Nobody yet") ?></span>
+                </div>
+              </div>
+
+              <div class="collection-card-actions">
+                <div class="collection-card-toolbar">
+                  <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/collections.php?view=<?= (int)$collection["collection_id"] ?>">View measurements</a>
+                  <form method="post" onsubmit="return confirm('Delete this collection?');" class="m-0">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                  </form>
+                </div>
+
+                <form method="post" class="collection-card-form">
+                  <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                  <input type="hidden" name="action" value="rename">
+                  <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
+                  <div class="collection-card-form-grid">
+                    <div>
+                      <label class="collection-inline-label">Name</label>
+                      <input class="form-control form-control-sm" name="name" value="<?= esc($collection["name"]) ?>" required>
                     </div>
-                  </td>
-                  <td><?= (int)$collection["measurement_count"] ?></td>
-                  <td><?= esc($collection["shared_with"] ?? "-") ?></td>
-                  <td>
-                    <div class="d-grid gap-2">
-                      <form method="post" class="row g-2">
-                        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                        <input type="hidden" name="action" value="rename">
-                        <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
-                        <div class="col-md-5">
-                          <input class="form-control form-control-sm" name="name" value="<?= esc($collection["name"]) ?>" required>
-                        </div>
-                        <div class="col-md-4">
-                          <input class="form-control form-control-sm" name="description" value="<?= esc($collection["description"] ?? "") ?>" placeholder="Description">
-                        </div>
-                        <div class="col-md-3">
-                          <button class="btn btn-sm btn-outline-dark w-100">Save</button>
-                        </div>
-                      </form>
-
-                      <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/collections.php?view=<?= (int)$collection["collection_id"] ?>">View</a>
-
-                      <?php if (count($friends) > 0): ?>
-                        <form method="post" class="row g-2">
-                          <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                          <input type="hidden" name="action" value="share">
-                          <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
-                          <div class="col-md-8">
-                            <select class="form-select form-select-sm" name="friend_user_id" required>
-                              <option value="">Share with friend...</option>
-                              <?php foreach ($friends as $friend): ?>
-                                <option value="<?= (int)$friend["user_id"] ?>"><?= esc($friend["username"]) ?></option>
-                              <?php endforeach; ?>
-                            </select>
-                          </div>
-                          <div class="col-md-4">
-                            <button class="btn btn-sm btn-outline-primary w-100">Share</button>
-                          </div>
-                        </form>
-                      <?php endif; ?>
-
-                      <?php if (!empty($collection["shared_with"])): ?>
-                        <div class="border rounded p-2">
-                          <div class="small text-muted mb-2">Undo sharing</div>
-                          <div class="d-grid gap-2">
-                            <?php foreach (explode(", ", $collection["shared_with"]) as $sharedUsername): ?>
-                              <?php
-                              $sharedUserId = 0;
-                              foreach ($friends as $friend) {
-                                if ($friend["username"] === $sharedUsername) {
-                                  $sharedUserId = (int)$friend["user_id"];
-                                  break;
-                                }
-                              }
-                              ?>
-                              <?php if ($sharedUserId > 0): ?>
-                                <form method="post" class="d-flex justify-content-between align-items-center gap-2">
-                                  <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                                  <input type="hidden" name="action" value="unshare">
-                                  <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
-                                  <input type="hidden" name="friend_user_id" value="<?= $sharedUserId ?>">
-                                  <span class="small"><?= esc($sharedUsername) ?></span>
-                                  <button class="btn btn-sm btn-outline-secondary">Unshare</button>
-                                </form>
-                              <?php endif; ?>
-                            <?php endforeach; ?>
-                          </div>
-                        </div>
-                      <?php endif; ?>
-
-                      <form method="post" onsubmit="return confirm('Delete this collection?');">
-                        <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
-                        <button class="btn btn-sm btn-outline-danger">Delete</button>
-                      </form>
+                    <div>
+                      <label class="collection-inline-label">Description</label>
+                      <input class="form-control form-control-sm" name="description" value="<?= esc($collection["description"] ?? "") ?>" placeholder="Description">
                     </div>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+                    <div>
+                      <label class="collection-inline-label">&nbsp;</label>
+                      <button class="btn btn-sm btn-outline-dark w-100">Save changes</button>
+                    </div>
+                  </div>
+                </form>
+
+                <?php if (count($friends) > 0): ?>
+                  <form method="post" class="collection-card-form">
+                    <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                    <input type="hidden" name="action" value="share">
+                    <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
+                    <div class="collection-card-form-grid collection-card-form-grid-share">
+                      <div>
+                        <label class="collection-inline-label">Share with a friend</label>
+                        <select class="form-select form-select-sm" name="friend_user_id" required>
+                          <option value="">Choose friend...</option>
+                          <?php foreach ($friends as $friend): ?>
+                            <option value="<?= (int)$friend["user_id"] ?>"><?= esc($friend["username"]) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="collection-inline-label">&nbsp;</label>
+                        <button class="btn btn-sm btn-outline-primary w-100">Share collection</button>
+                      </div>
+                    </div>
+                  </form>
+                <?php endif; ?>
+
+                <?php if (!empty($collection["shared_with"])): ?>
+                  <div class="collection-share-list">
+                    <div class="collection-inline-label mb-2">Undo sharing</div>
+                    <div class="collection-share-pills">
+                      <?php foreach (explode(", ", $collection["shared_with"]) as $sharedUsername): ?>
+                        <?php
+                        $sharedUserId = 0;
+                        foreach ($friends as $friend) {
+                          if ($friend["username"] === $sharedUsername) {
+                            $sharedUserId = (int)$friend["user_id"];
+                            break;
+                          }
+                        }
+                        ?>
+                        <?php if ($sharedUserId > 0): ?>
+                          <form method="post" class="collection-share-pill">
+                            <input type="hidden" name="csrf" value="<?= esc(csrfToken()) ?>">
+                            <input type="hidden" name="action" value="unshare">
+                            <input type="hidden" name="collection_id" value="<?= (int)$collection["collection_id"] ?>">
+                            <input type="hidden" name="friend_user_id" value="<?= $sharedUserId ?>">
+                            <span><?= esc($sharedUsername) ?></span>
+                            <button class="btn btn-sm btn-outline-secondary">Unshare</button>
+                          </form>
+                        <?php endif; ?>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+                <?php endif; ?>
+              </div>
+            </section>
+          <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>
@@ -468,39 +480,45 @@ require_once PIF_ROOT . "/includes/header.php";
       <?php if (count($sharedCollections) === 0): ?>
         <p class="empty-state">No collections have been shared with you yet.</p>
       <?php else: ?>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Owner</th>
-                <th>Station</th>
-                <th>Range</th>
-                <th>Rows</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($sharedCollections as $collection): ?>
-                <tr>
-                  <td>
-                    <div class="fw-semibold"><?= esc($collection["name"]) ?></div>
-                    <div class="text-muted small"><?= esc($collection["description"] ?? "") ?></div>
-                  </td>
-                  <td><?= esc($collection["owner_username"]) ?></td>
-                  <td><?= esc($collection["station_name"]) ?></td>
-                  <td>
-                    <div class="range-cell">
-                      <?= esc($collection["start_at"]) ?>
-                      <span class="range-end">to <?= esc($collection["end_at"]) ?></span>
-                    </div>
-                  </td>
-                  <td><?= (int)$collection["measurement_count"] ?></td>
-                  <td><a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/collections.php?view=<?= (int)$collection["collection_id"] ?>">View</a></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+        <div class="collection-card-list">
+          <?php foreach ($sharedCollections as $collection): ?>
+            <section class="collection-card">
+              <div class="collection-card-header">
+                <div>
+                  <h3 class="collection-card-title mb-1"><?= esc($collection["name"]) ?></h3>
+                  <p class="collection-card-description mb-0">
+                    <?= esc($collection["description"] ?: "No description added.") ?>
+                  </p>
+                </div>
+                <div class="collection-card-badge">
+                  <?= (int)$collection["measurement_count"] ?> rows
+                </div>
+              </div>
+
+              <div class="collection-card-meta">
+                <div class="collection-meta-item">
+                  <span class="collection-meta-label">Owner</span>
+                  <span class="collection-meta-value"><?= esc($collection["owner_username"]) ?></span>
+                </div>
+                <div class="collection-meta-item">
+                  <span class="collection-meta-label">Station</span>
+                  <span class="collection-meta-value"><?= esc($collection["station_name"]) ?></span>
+                </div>
+                <div class="collection-meta-item collection-meta-item-wide">
+                  <span class="collection-meta-label">Date range</span>
+                  <span class="collection-meta-value">
+                    <?= esc($collection["start_at"]) ?> to <?= esc($collection["end_at"]) ?>
+                  </span>
+                </div>
+              </div>
+
+              <div class="collection-card-actions">
+                <div class="collection-card-toolbar">
+                  <a class="btn btn-sm btn-outline-secondary" href="/RPIF1/user/collections.php?view=<?= (int)$collection["collection_id"] ?>">View measurements</a>
+                </div>
+              </div>
+            </section>
+          <?php endforeach; ?>
         </div>
       <?php endif; ?>
     </div>

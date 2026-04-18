@@ -393,12 +393,113 @@ body {
   padding: 0.35rem 0.4rem 0.35rem 0.8rem;
 }
 
+.management-card-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.management-card {
+  background: var(--soft-bg);
+  border: 1px solid var(--soft-border);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.management-card-header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.management-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.management-card-description {
+  color: var(--muted-color);
+  margin: 0;
+}
+
+.management-card-meta {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.management-card-meta.three-col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.management-meta-item {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+}
+
+.management-meta-label {
+  color: var(--muted-color);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.management-meta-value {
+  color: var(--text-color);
+  display: block;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.management-card-actions {
+  border-top: 1px solid var(--card-border);
+  display: grid;
+  gap: 0.85rem;
+  padding-top: 1rem;
+}
+
+.management-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.management-form {
+  margin: 0;
+}
+
+.management-form-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 10rem;
+}
+
+.management-form-grid.two-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 10rem;
+}
+
+.management-form-grid.station-assign {
+  grid-template-columns: minmax(0, 1fr) 10rem;
+}
+
 @media (max-width: 991.98px) {
   .collection-edit-grid,
   .collection-share-grid,
   .collection-card-meta,
   .collection-card-form-grid,
-  .collection-card-form-grid-share {
+  .collection-card-form-grid-share,
+  .management-card-meta,
+  .management-form-grid,
+  .management-form-grid.two-fields,
+  .management-form-grid.station-assign {
     grid-template-columns: 1fr;
   }
 
@@ -407,6 +508,10 @@ body {
   }
 
   .collection-card-header {
+    flex-direction: column;
+  }
+
+  .management-card-header {
     flex-direction: column;
   }
 }
